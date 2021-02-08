@@ -8,7 +8,7 @@
 
 ## User friendly [Online Wallet](https://wallet.prizm.space/) ([Mirror](https://wallet.prizm-space.com/))
 
-## Client downloads for [Windows](http://tech.prizm.space/files/PRIZM_Wallet_Setup.exe) and [OS X](http://tech.prizm.space/files/PRIZM_Wallet.dmg)
+## Client downloads for [Windows](http://tech.prizm.space/files/PRIZM_Wallet_Setup.exe) and [OS/X](http://tech.prizm.space/files/PRIZM_Wallet.dmg)
 
 ## Easy API gateway [PrizmAPIServlet 1.10.4](http://tech.prizm.space/files/prizm-api-1.10.4.tgz)
 
