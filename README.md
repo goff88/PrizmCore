@@ -1,6 +1,6 @@
 # PrizmCore - the heart of the PRIZM Project.
 
-## PRIZM Whitepaper ([en](http://tech.prizm.space/wp/prizm_wp_en.pdf?rnd=20200601), [ru](http://tech.prizm.space/wp/prizm_wp_ru.pdf?rnd=20200601), [zh](http://tech.prizm.space/wp/prizm_wp_zh.pdf?rnd=20200601), [el](http://tech.prizm.space/wp/prizm_wp_el.pdf?rnd=20200601), [id](http://tech.prizm.space/wp/prizm_wp_id.pdf?rnd=20200601))
+## PRIZM Whitepaper ([en](http://tech.prizm.space/wp/prizm_wp_en.pdf?rnd=20200601), [ru](http://tech.prizm.space/wp/prizm_wp_ru.pdf?rnd=20200601), [zh](http://tech.prizm.space/wp/prizm_wp_zh.pdf?rnd=20200601), [el](http://tech.prizm.space/wp/prizm_wp_el.pdf?rnd=20200601), [id](http://tech.prizm.space/wp/prizm_wp_id.pdf?rnd=20200601), [tr](http://tech.prizm.space/wp/prizm_wp_tr.pdf?rnd=20200601))
 
 ## PrizmCore wallet download (v.1.10.4.6: [Windows](http://tech.prizm.space/files/prizm-dist-1.10.4.6-win.exe), [OS/X](http://tech.prizm.space/files/prizm-dist-1.10.4.6-mac.dmg), [Linux](http://tech.prizm.space/files/prizm-dist-1.10.4.6-linux.tgz))
 
@@ -8,7 +8,7 @@
 
 ## User friendly [Online Wallet](https://wallet.prizm.space/) ([Mirror](https://wallet.prizm-space.com/))
 
-## [Windows and OS X client downloads](http://94.130.167.158/center/)
+## Client downloads for [Windows](http://tech.prizm.space/files/PRIZM_Wallet_Setup.exe) and [OS X](http://tech.prizm.space/files/PRIZM_Wallet.dmg)
 
 ## Easy API gateway [PrizmAPIServlet 1.10.4](http://tech.prizm.space/files/prizm-api-1.10.4.tgz)
 
