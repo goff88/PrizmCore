@@ -16,6 +16,7 @@
 
 package prizm.db;
 
+import prizm.Blockchain;
 import prizm.Constants;
 import prizm.Prizm;
 import prizm.util.Logger;
@@ -423,7 +424,7 @@ public abstract class EntityDbTable<T> extends DerivedDbTable {
         try (Connection con = db.getConnection()) {
             if (multiversion) {
                 try (PreparedStatement pstmt = con.prepareStatement("UPDATE " + table
-                        + " SET latest = FALSE " + dbKeyFactory.getPKClause() + " AND latest = TRUE LIMIT 1")) {
+                        + " SET latest = FALSE " + dbKeyFactory.getPKClause() + " AND latest = TRUE ORDER BY " + dbKeyFactory.getPKColumns() + ",height DESC LIMIT 1")) {
                     dbKey.setPK(pstmt);
                     pstmt.executeUpdate();
                 }

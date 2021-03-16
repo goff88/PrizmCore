@@ -17,12 +17,11 @@
 package prizm.db;
 
 
+import prizm.Constants;
 import prizm.Prizm;
+import prizm.util.Logger;
 
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
+import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -126,28 +125,68 @@ public abstract class VersionedEntityDbTable<T> extends EntityDbTable<T> {
         if (!db.isInTransaction()) {
             throw new IllegalStateException("Not in transaction");
         }
-        try (Connection con = db.getConnection();
-             PreparedStatement pstmtSelect = con.prepareStatement("SELECT " + dbKeyFactory.getPKColumns() + ", MAX(height) AS max_height"
-                     + " FROM " + table + " WHERE height < ? GROUP BY " + dbKeyFactory.getPKColumns() + " HAVING COUNT(DISTINCT height) > 1");
-             PreparedStatement pstmtDelete = con.prepareStatement("DELETE FROM " + table + dbKeyFactory.getPKClause()
-                     + " AND height < ? AND height >= 0");
-            PreparedStatement pstmtDeleteDeleted = con.prepareStatement("DELETE FROM " + table + " WHERE height < ? AND height >= 0 AND latest = FALSE "
-                    + " AND (" + dbKeyFactory.getPKColumns() + ") NOT IN (SELECT (" + dbKeyFactory.getPKColumns() + ") FROM "
-                    + table + " WHERE height >= ?)")) {
-            pstmtSelect.setInt(1, height);
-            try (ResultSet rs = pstmtSelect.executeQuery()) {
-                while (rs.next()) {
-                    DbKey dbKey = dbKeyFactory.newKey(rs);
-                    int maxHeight = rs.getInt("max_height");
-                    int i = 1;
-                    i = dbKey.setPK(pstmtDelete, i);
-                    pstmtDelete.setInt(i, maxHeight);
-                    pstmtDelete.executeUpdate();
-                }
-                pstmtDeleteDeleted.setInt(1, height);
-                pstmtDeleteDeleted.setInt(2, height);
-                pstmtDeleteDeleted.executeUpdate();
+        int deleted = 0;
+        long startTime = System.currentTimeMillis();
+        try (Connection con = db.getConnection()) {
+            // Delete all NOT LATEST versions of every account that has LATEST version OUTSIDE the max rollback range
+            try (PreparedStatement psPreviousFrame = con.prepareStatement("delete from "+table+" where " + dbKeyFactory.getPKColumns() + " in " +
+                    "(select "+dbKeyFactory.getPKColumns()+" from "+table+" where latest=true and height < ? and height >= ?) and latest=false and height < ?")) {
+                psPreviousFrame.setInt(1, height);
+                psPreviousFrame.setInt(2, Math.max(height - 2 * Constants.TRIM_FREQUENCY, 0));
+                psPreviousFrame.setInt(3, height);
+                int cleanedup = psPreviousFrame.executeUpdate();
+                db.commitTransaction();
+                deleted += cleanedup;
             }
+            // Delete all NOT LATEST versions of every account that has LATEST version INSIDE the max rollback range EXCLUDING the latest NOT LATEST version OUTSIDE the max rollback range
+            try (PreparedStatement psCurrentFrame = con.prepareStatement("select " + dbKeyFactory.getPKColumns() + ",max(height) as height from " + table + " where " + dbKeyFactory.getPKColumns() + " in (select " + dbKeyFactory.getPKColumns() + " from " + table + " where latest=true and height >= ? group by " + dbKeyFactory.getPKColumns() + ") and latest=false and height < ? group by " + dbKeyFactory.getPKColumns())) {
+                psCurrentFrame.setInt(1, height);
+                psCurrentFrame.setInt(2, height);
+                int cleanedup = 0;
+                try (ResultSet rs = psCurrentFrame.executeQuery()) {
+                    try (PreparedStatement psCurrentFrameCleanup = con.prepareStatement("delete from " + table + dbKeyFactory.getPKClause() + " and height<?")) {
+                        while (rs.next()) {
+                            psCurrentFrameCleanup.setLong(1, rs.getLong(1));
+                            psCurrentFrameCleanup.setInt(2, rs.getInt(2));
+                            psCurrentFrameCleanup.addBatch();
+                            cleanedup++;
+                        }
+                        psCurrentFrameCleanup.executeBatch();
+                        db.commitTransaction();
+                    }
+                }
+                deleted += cleanedup;
+            }
+            // Delete all accounts with ZERO balance OUTSIDE the rollback range - we should not store them to protect DB from cheap overflowing attack
+            if (table.equalsIgnoreCase("account")) {
+                try (PreparedStatement pstmtSelectBankrods = con.prepareStatement("select id,max(height) from (select id,height from account where balance=0 and unconfirmed_balance=0 and forged_balance=0 and height>=? and height<? order by height desc) group by id order by 2 desc;")) {
+                    pstmtSelectBankrods.setInt(1, Math.max(0, height - Constants.TRIM_FREQUENCY));
+                    pstmtSelectBankrods.setInt(2, height);
+                    try (ResultSet bankrods = pstmtSelectBankrods.executeQuery()) {
+                        try (PreparedStatement pstmtDeleteBankrods = con.prepareStatement("delete from account where id=? and height<=?")) {
+                            int trimmedBankrods = 0;
+                            while (bankrods.next()) {
+                                pstmtDeleteBankrods.clearParameters();
+                                pstmtDeleteBankrods.setLong(1, bankrods.getLong(1));
+                                pstmtDeleteBankrods.setInt(2, bankrods.getInt(2));
+                                trimmedBankrods++;
+                                pstmtDeleteBankrods.addBatch();
+                            }
+                            pstmtDeleteBankrods.executeBatch();
+                            db.commitTransaction();
+                            deleted += trimmedBankrods;
+                        }
+                    }
+
+                }
+            }
+            double timeSpent = 0d;
+            if (System.currentTimeMillis()-startTime != 0)
+                timeSpent = (double)(System.currentTimeMillis()-startTime)/1000d;
+            double speed = 0d;
+            if (timeSpent != 0d)
+                speed = (double)deleted / timeSpent;
+            Logger.logDebugMessage("Table "+table.toUpperCase()+" trimmed for "+timeSpent+" seconds (trimmed "+deleted+" entries, "+speed+" per second)");
         } catch (SQLException e) {
             throw new RuntimeException(e.toString(), e);
         }

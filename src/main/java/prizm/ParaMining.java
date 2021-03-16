@@ -22,4 +22,7 @@ public interface ParaMining {
     public void init();
     public void popLastBlock();
     public Connection getConnection ();
+    public long getBaseTarget(int height) throws Exception;
+    public boolean isZeroblockFixed();
+    public void zeroblockFixed();
 }

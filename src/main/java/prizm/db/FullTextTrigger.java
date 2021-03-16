@@ -216,8 +216,8 @@ public class FullTextTrigger implements Trigger, TransactionalDb.TransactionCall
             // Create our schema and table
             //
             stmt.execute("CREATE SCHEMA IF NOT EXISTS FTL");
-            stmt.execute("CREATE TABLE IF NOT EXISTS FTL.INDEXES "
-                    + "(SCHEMA VARCHAR, TABLE VARCHAR, COLUMNS VARCHAR, PRIMARY KEY(SCHEMA, TABLE))");
+            stmt.execute("CREATE TABLE IF NOT EXISTS FTL.INDEXES " // Fixed incompatibility with H2 1.4.199
+                    + "(SCHEMA VARCHAR, \"TABLE\" VARCHAR, COLUMNS VARCHAR, PRIMARY KEY(SCHEMA, \"TABLE\"))");
             Logger.logInfoMessage("NRS fulltext schema created");
             //
             // Drop existing triggers and create our triggers.  H2 will initialize the trigger
@@ -301,7 +301,7 @@ public class FullTextTrigger implements Trigger, TransactionalDb.TransactionCall
         // will be initialized when it is created.
         //
         try (Statement stmt = conn.createStatement()) {
-            stmt.execute(String.format("INSERT INTO FTL.INDEXES (schema, table, columns) "
+            stmt.execute(String.format("INSERT INTO FTL.INDEXES (schema, \"TABLE\", columns) "
                     + "VALUES('%s', '%s', '%s')",
                     upperSchema, upperTable, columnList.toUpperCase()));
             stmt.execute(String.format("CREATE TRIGGER FTL_%s AFTER INSERT,UPDATE,DELETE ON %s "
@@ -343,11 +343,11 @@ public class FullTextTrigger implements Trigger, TransactionalDb.TransactionCall
         try (Statement qstmt = conn.createStatement();
                 Statement stmt = conn.createStatement()) {
             try (ResultSet rs = qstmt.executeQuery(String.format(
-                    "SELECT COLUMNS FROM FTL.INDEXES WHERE SCHEMA = '%s' AND TABLE = '%s'",
+                    "SELECT COLUMNS FROM FTL.INDEXES WHERE SCHEMA = '%s' AND \"TABLE\" = '%s'",
                     upperSchema, upperTable))) {
                 if (rs.next()) {
                     stmt.execute("DROP TRIGGER IF EXISTS FTL_" + upperTable);
-                    stmt.execute(String.format("DELETE FROM FTL.INDEXES WHERE SCHEMA = '%s' AND TABLE = '%s'",
+                    stmt.execute(String.format("DELETE FROM FTL.INDEXES WHERE SCHEMA = '%s' AND \"TABLE\" = '%s'",
                             upperSchema, upperTable));
                     reindex = true;
                 }
@@ -373,7 +373,7 @@ public class FullTextTrigger implements Trigger, TransactionalDb.TransactionCall
         //
         try (Statement qstmt = conn.createStatement();
                 Statement stmt = conn.createStatement();
-                ResultSet rs = qstmt.executeQuery("SELECT TABLE FROM FTL.INDEXES")) {
+                ResultSet rs = qstmt.executeQuery("SELECT \"TABLE\" FROM FTL.INDEXES")) {
             while(rs.next()) {
                 String table = rs.getString(1);
                 stmt.execute("DROP TRIGGER IF EXISTS FTL_" + table);
@@ -521,7 +521,7 @@ public class FullTextTrigger implements Trigger, TransactionalDb.TransactionCall
             // Indexed columns must be strings (VARCHAR)
             //
             try (ResultSet rs = stmt.executeQuery(String.format(
-                    "SELECT COLUMNS FROM FTL.INDEXES WHERE SCHEMA = '%s' AND TABLE = '%s'",
+                    "SELECT COLUMNS FROM FTL.INDEXES WHERE SCHEMA = '%s' AND \"TABLE\" = '%s'",
                     schema, table))) {
                 if (rs.next()) {
                     String[] columns = rs.getString(1).split(",");

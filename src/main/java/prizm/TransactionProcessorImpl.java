@@ -51,6 +51,7 @@ final class TransactionProcessorImpl implements TransactionProcessor {
 
     private final Map<DbKey, UnconfirmedTransaction> transactionCache = new HashMap<>();
     private volatile boolean cacheInitialized = false;
+    private volatile boolean revalidateUnconfirmedTransactions = true;
 
     final DbKey.LongKeyFactory<UnconfirmedTransaction> unconfirmedTransactionDbKeyFactory = new DbKey.LongKeyFactory<UnconfirmedTransaction>("id") {
 
@@ -182,6 +183,10 @@ final class TransactionProcessorImpl implements TransactionProcessor {
                         BlockchainImpl.getInstance().writeUnlock();
                     }
                 }
+                if (revalidateUnconfirmedTransactions) {
+                    revalidateUnconfirmedTransactions = false;
+                    revalidateUnconfirmedTransactions();
+                }
             } catch (Exception e) {
                 Logger.logMessage("Error removing unconfirmed transactions", e);
             }
@@ -242,7 +247,7 @@ final class TransactionProcessorImpl implements TransactionProcessor {
                 getAllUnconfirmedTransactionIds().forEach(transactionId -> exclude.add(Long.toUnsignedString(transactionId)));
                 Collections.sort(exclude);
                 request.put("exclude", exclude);
-                JSONObject response = peer.send(JSON.prepareRequest(request), 10 * 1024 * 1024);
+                JSONObject response = peer.send(JSON.prepareRequest(request), Peers.MAX_MESSAGE_SIZE);
                 if (response == null) {
                     return;
                 }
@@ -476,6 +481,40 @@ final class TransactionProcessorImpl implements TransactionProcessor {
         }
     }
 
+    void revalidateUnconfirmedTransactions() {
+        BlockchainImpl.getInstance().writeLock();
+        try {
+            List<TransactionImpl> toRemove = new ArrayList<>();
+            try {
+                Db.db.beginTransaction();
+                try (DbIterator<UnconfirmedTransaction> unconfirmedTransactions = getAllUnconfirmedTransactions()) {
+                    for (UnconfirmedTransaction unconfirmedTransaction : unconfirmedTransactions) {
+                        if (unconfirmedTransaction.getSenderId() == unconfirmedTransaction.getRecipientId()) {
+                            toRemove.add(unconfirmedTransaction.getTransaction());
+                        }
+                    }
+                }
+                if (toRemove.size() > 0) {
+                    for (TransactionImpl transaction : toRemove) {
+                        removeUnconfirmedTransaction(transaction);
+                        Logger.logWarningMessage("Removed unconfirmed transaction to self! Account: " + Long.toUnsignedString(transaction.getSenderId()) + ", transaction: "+transaction.getId());
+
+                    }
+                    Logger.logWarningMessage("Removed " + toRemove.size() + " unconfirmed transactions to self");
+                }
+                Db.db.commitTransaction();
+            } catch (Exception e) {
+                Logger.logErrorMessage(e.toString(), e);
+                Db.db.rollbackTransaction();
+                throw e;
+            } finally {
+                Db.db.endTransaction();
+            }
+        } finally {
+            BlockchainImpl.getInstance().writeUnlock();
+        }
+    }
+
     @Override
     public void requeueAllUnconfirmedTransactions() {
         BlockchainImpl.getInstance().writeLock();
@@ -652,6 +691,10 @@ final class TransactionProcessorImpl implements TransactionProcessor {
                         continue;
                     }
                     if (transaction.getFeeNQT() < Prizm.para().getFixedFee(transaction.getAmountNQT())) {
+                        continue;
+                    }
+                    if (transaction.getSenderId() == transaction.getRecipientId()) {
+                        Logger.logWarningMessage("Blocked transaction to self received from peer! Account: " + Long.toUnsignedString(transaction.getSenderId()) + ", transaction: "+transaction.getId()+" " + transactionData.toString());
                         continue;
                     }
                 }

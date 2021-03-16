@@ -390,8 +390,113 @@ final class BlockchainImpl implements Blockchain {
 
     @Override
     public DbIterator<TransactionImpl> getTransactions(long accountId, int numberOfConfirmations, byte type, byte subtype,
-            int blockTimestamp, boolean withMessage, boolean phasedOnly, boolean nonPhasedOnly,
-            int from, int to, boolean includeExpiredPrunable, boolean executedOnly) {
+            int blockTimestamp, boolean withMessage, boolean deprecated1, boolean deprecated2,
+            int from, int to, boolean includeExpiredPrunable, boolean deprecated3) {
+        int height = numberOfConfirmations > 0 ? getHeight() - numberOfConfirmations : Integer.MAX_VALUE;
+        if (height < 0) {
+            throw new IllegalArgumentException("Number of confirmations required " + numberOfConfirmations
+                    + " exceeds current blockchain height " + getHeight());
+        }
+        Connection con = null;
+        try {
+            StringBuilder buf = new StringBuilder();
+            buf.append("SELECT * from ((SELECT transaction.* FROM transaction USE INDEX (trx_recipient_blockstamp_idx) ");
+            buf.append("WHERE recipient_id = ? ");
+            if (blockTimestamp > 0) {
+                buf.append("AND block_timestamp >= ? ");
+            } else {
+                buf.append("AND block_timestamp > -1 ");
+            }
+            if (type >= 0) {
+                buf.append("AND type = ? ");
+                if (subtype >= 0) {
+                    buf.append("AND subtype = ? ");
+                }
+            }
+            if (height < Integer.MAX_VALUE) {
+                buf.append("AND transaction.height <= ? ");
+            }
+            if (withMessage) {
+                buf.append("AND (has_message = TRUE OR has_encrypted_message = TRUE ");
+                buf.append("OR ((has_prunable_message = TRUE OR has_prunable_encrypted_message = TRUE) AND timestamp > ?)) ");
+            }
+
+            buf.append("ORDER BY recipient_id, block_timestamp DESC LIMIT ?) UNION ALL (SELECT transaction.* FROM transaction USE INDEX (trx_sender_blockstamp_idx) ");
+
+            buf.append("WHERE sender_id = ? ");
+            if (blockTimestamp > 0) {
+                buf.append("AND block_timestamp >= ? ");
+            } else {
+                buf.append("AND block_timestamp > -1 ");
+            }
+            if (type >= 0) {
+                buf.append("AND type = ? ");
+                if (subtype >= 0) {
+                    buf.append("AND subtype = ? ");
+                }
+            }
+            if (height < Integer.MAX_VALUE) {
+                buf.append("AND transaction.height <= ? ");
+            }
+            if (withMessage) {
+                buf.append("AND (has_message = TRUE OR has_encrypted_message = TRUE OR has_encrypttoself_message = TRUE ");
+                buf.append("OR ((has_prunable_message = TRUE OR has_prunable_encrypted_message = TRUE) AND timestamp > ?)) ");
+            }
+
+            buf.append("ORDER BY sender_id, block_timestamp DESC LIMIT ?)) ORDER BY block_timestamp DESC, transaction_index DESC");
+            buf.append(DbUtils.limitsClause(from, to));
+            con = Db.db.getConnection();
+            PreparedStatement pstmt;
+            int i = 0;
+            pstmt = con.prepareStatement(buf.toString());
+            pstmt.setLong(++i, accountId);
+            if (blockTimestamp > 0) {
+                pstmt.setInt(++i, blockTimestamp);
+            }
+            if (type >= 0) {
+                pstmt.setByte(++i, type);
+                if (subtype >= 0) {
+                    pstmt.setByte(++i, subtype);
+                }
+            }
+            if (height < Integer.MAX_VALUE) {
+                pstmt.setInt(++i, height);
+            }
+            int prunableExpiration = Math.max(0, Constants.INCLUDE_EXPIRED_PRUNABLE && includeExpiredPrunable ?
+                     Prizm.getEpochTime() - Constants.MAX_PRUNABLE_LIFETIME :
+                     Prizm.getEpochTime() - Constants.MIN_PRUNABLE_LIFETIME);
+            if (withMessage) {
+                pstmt.setInt(++i, prunableExpiration);
+            }
+            pstmt.setInt(++i, 1600 + (to >=0 && to >= from && to < Integer.MAX_VALUE ? to : from + 100));
+            pstmt.setLong(++i, accountId);
+            if (blockTimestamp > 0) {
+                pstmt.setInt(++i, blockTimestamp);
+            }
+            if (type >= 0) {
+                pstmt.setByte(++i, type);
+                if (subtype >= 0) {
+                    pstmt.setByte(++i, subtype);
+                }
+            }
+            if (height < Integer.MAX_VALUE) {
+                pstmt.setInt(++i, height);
+            }
+            if (withMessage) {
+                pstmt.setInt(++i, prunableExpiration);
+            }
+            pstmt.setInt(++i, 1600 + (to >=0 && to >= from && to < Integer.MAX_VALUE ? to : from + 100));
+            DbUtils.setLimits(++i, pstmt, from, to);
+            return getTransactions(con, pstmt);
+        } catch (SQLException e) {
+            DbUtils.close(con);
+            throw new RuntimeException(e.toString(), e);
+        }
+    }
+
+    public DbIterator<TransactionImpl> getTransactionsLegacy(long accountId, int numberOfConfirmations, byte type, byte subtype,
+                                                       int blockTimestamp, boolean withMessage, boolean phasedOnly, boolean nonPhasedOnly,
+                                                       int from, int to, boolean includeExpiredPrunable, boolean executedOnly) {
         if (phasedOnly && nonPhasedOnly) {
             throw new IllegalArgumentException("At least one of phasedOnly or nonPhasedOnly must be false");
         }
@@ -483,8 +588,8 @@ final class BlockchainImpl implements Blockchain {
                 pstmt.setInt(++i, height);
             }
             int prunableExpiration = Math.max(0, Constants.INCLUDE_EXPIRED_PRUNABLE && includeExpiredPrunable ?
-                     Prizm.getEpochTime() - Constants.MAX_PRUNABLE_LIFETIME :
-                     Prizm.getEpochTime() - Constants.MIN_PRUNABLE_LIFETIME);
+                    Prizm.getEpochTime() - Constants.MAX_PRUNABLE_LIFETIME :
+                    Prizm.getEpochTime() - Constants.MIN_PRUNABLE_LIFETIME);
             if (withMessage) {
                 pstmt.setInt(++i, prunableExpiration);
             }

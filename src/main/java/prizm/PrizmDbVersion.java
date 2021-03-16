@@ -29,6 +29,7 @@ import java.util.List;
 class PrizmDbVersion extends DbVersion {
 
     protected void update(int nextUpdate) {
+        boolean bypassRescan = false;
         switch (nextUpdate) {
             case 1:
                 apply("CREATE TABLE IF NOT EXISTS block (db_id IDENTITY, id BIGINT NOT NULL, version INT NOT NULL, "
@@ -39,6 +40,7 @@ class PrizmDbVersion extends DbVersion {
                         + "next_block_id BIGINT, "
                         + "height INT NOT NULL, generation_signature BINARY(64) NOT NULL, "
                         + "block_signature BINARY(64) NOT NULL, payload_hash BINARY(32) NOT NULL, generator_id BIGINT NOT NULL)");
+                bypassRescan = true;
             case 2:
                 apply("CREATE UNIQUE INDEX IF NOT EXISTS block_id_idx ON block (id)");
             case 3:
@@ -755,7 +757,8 @@ class PrizmDbVersion extends DbVersion {
             case 343:
                 apply("DROP INDEX IF EXISTS account_height_idx");
             case 344:
-                apply("CREATE INDEX IF NOT EXISTS account_height_id_idx ON account (height, id)");
+//                apply("CREATE INDEX IF NOT EXISTS account_height_id_idx ON account (height, id)");
+                apply(null);
             case 345:
                 apply(null);
             case 346:
@@ -860,7 +863,7 @@ class PrizmDbVersion extends DbVersion {
                         + "holding_id BIGINT, change BIGINT NOT NULL, balance BIGINT NOT NULL, "
                         + "block_id BIGINT NOT NULL, height INT NOT NULL, timestamp INT NOT NULL)");
             case 395:
-                apply("CREATE INDEX IF NOT EXISTS account_ledger_id_idx ON account_ledger(account_id, db_id)");
+                apply(null);
             case 396:
                 apply("CREATE INDEX IF NOT EXISTS account_ledger_height_idx ON account_ledger(height)");
             case 397:
@@ -1053,7 +1056,7 @@ class PrizmDbVersion extends DbVersion {
             case 483:
                 apply(null);
             case 484:
-                // Do nothing
+                apply(null); // fixed bug
             case 485:
                 // BlockDb.deleteBlocksFromHeight(Constants.FXT_BLOCK); // What?
                 apply(null);
@@ -1066,6 +1069,21 @@ class PrizmDbVersion extends DbVersion {
             case 489:
                 apply(null);
             case 490:
+                apply("CREATE INDEX IF NOT EXISTS TRX_SENDER_BLOCKSTAMP_IDX ON transaction(sender_id, block_timestamp DESC)");
+            case 491:
+                apply("CREATE INDEX IF NOT EXISTS TRX_RECIPIENT_BLOCKSTAMP_IDX ON transaction(recipient_id, block_timestamp DESC)");
+            case 492:
+                apply("ANALYZE");
+            case 493:
+                apply("DROP INDEX IF EXISTS ACCOUNT_LEDGER_ID_IDX");
+            case 494:
+                apply("CREATE INDEX IF NOT EXISTS ACCOUNT_LEDGER_ID_IDX ON account_ledger(account_id,db_id DESC)");
+            case 495:
+                apply("CREATE INDEX IF NOT EXISTS ACCOUNT_HEIGHT_IDX ON account(height DESC)");
+            case 496:
+                apply("DROP INDEX IF EXISTS account_height_id_idx");
+                Prizm.setPerformRescan(!bypassRescan);
+            case 497:
                 return;
             default:
                 throw new RuntimeException("Blockchain database inconsistent with code, at update " + nextUpdate

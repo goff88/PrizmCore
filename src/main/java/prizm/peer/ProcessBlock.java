@@ -32,7 +32,6 @@ final class ProcessBlock extends PeerServlet.PeerRequestHandler {
 
     @Override
     JSONStreamAware processRequest(final JSONObject request, final Peer peer) {
-//System.out.println("--------------------------------\nprocblock 35 peer = "+peer.getHost() + " block = "+request.size()+"\n--------------------------------");        
         String previousBlockId = (String)request.get("previousBlock");
         Block lastBlock = Prizm.getBlockchain().getLastBlock();
         if (lastBlock.getStringId().equals(previousBlockId) ||
@@ -42,6 +41,7 @@ final class ProcessBlock extends PeerServlet.PeerRequestHandler {
                 try {
                     Prizm.getBlockchainProcessor().processPeerBlock(request);
                 } catch (PrizmException | RuntimeException e) {
+                    Prizm.para().rollbackToBlock(Prizm.getBlockchain().getHeight());
                     if (peer != null) {
                         peer.blacklist(e);
                     }

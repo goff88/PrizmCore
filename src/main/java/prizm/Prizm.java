@@ -25,10 +25,7 @@ import prizm.http.API;
 import prizm.http.APIProxy;
 import prizm.peer.Peers;
 import prizm.user.Users;
-import prizm.util.Convert;
-import prizm.util.Logger;
-import prizm.util.ThreadPool;
-import prizm.util.Time;
+import prizm.util.*;
 import org.json.simple.JSONObject;
 
 import java.io.File;
@@ -44,10 +41,7 @@ import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.security.AccessControlException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Properties;
+import java.util.*;
 
 public final class Prizm {
 
@@ -57,7 +51,8 @@ public final class Prizm {
         return paraMining;
     }
 
-    public static final String VERSION = "1.10.0";
+    public static final String MINIMAL_COMPATIBLE_VERSION = "1.10.4.5"; 
+    public static final String VERSION = "1.10.4.6";
     public static final String APPLICATION = "PZM";
 
     private static volatile Time time = new Time.EpochTime();
@@ -69,6 +64,8 @@ public final class Prizm {
 
     private static final RuntimeMode runtimeMode;
     private static final DirProvider dirProvider;
+
+    private static boolean performRescan = false;
 
     private static final Properties defaultProperties = new Properties();
     static {
@@ -335,7 +332,6 @@ public final class Prizm {
         try {
             Runtime.getRuntime().addShutdownHook(new Thread(Prizm::shutdown));
             init();
-            paraMining.init();
         } catch (Throwable t) {
             System.out.println("Fatal error: " + t.toString());
             t.printStackTrace();
@@ -395,6 +391,7 @@ public final class Prizm {
                 API.init();
                 Users.init();
                 DebugTrace.init();
+                paraMining.init();
                 int timeMultiplier = (Constants.isTestnet && Constants.isOffline) ? Math.max(Prizm.getIntProperty("prizm.timeMultiplier"), 1) : 1;
                 ThreadPool.start(timeMultiplier);
                 if (timeMultiplier > 1) {
@@ -416,12 +413,14 @@ public final class Prizm {
                     Logger.logMessage("Client UI is at " + API.getWelcomePageUri());
                 }
                 setServerStatus(ServerStatus.STARTED, API.getWelcomePageUri());
+
                 if (isDesktopApplicationEnabled()) {
                     launchDesktopApplication();
                 }
                 if (Constants.isTestnet) {
                     Logger.logMessage("RUNNING ON TESTNET - DO NOT USE REAL ACCOUNTS!");
                 }
+
             } catch (Exception e) {
                 Logger.logErrorMessage(e.getMessage(), e);
                 runtimeMode.alert(e.getMessage() + "\n" +
@@ -536,6 +535,14 @@ public final class Prizm {
         runtimeMode.setServerStatus(status, wallet, dirProvider.getLogFileDir());
     }
 
+    public static void setPerformRescan(boolean value) {
+        performRescan = value;
+    }
+
+    public static boolean shouldPerformRescan() {
+        return performRescan;
+    }
+
     public static boolean isDesktopApplicationEnabled() {
         return RuntimeEnvironment.isDesktopApplicationEnabled() && Prizm.getBooleanProperty("prizm.launchDesktopApplication");
     }
@@ -544,6 +551,10 @@ public final class Prizm {
         runtimeMode.launchDesktopApplication();
     }
 
+    public static boolean isCompatiblePeerVersion(String otherVersion) {
+        return Prizm.VERSION.equals(otherVersion) || !Version.MINIMAL_COMPATIBLE.isNewerThen(otherVersion);
+    }
+    
     private Prizm() {
     } // never
 

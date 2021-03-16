@@ -82,5 +82,5 @@ public abstract class VersionedValuesDbTable<T, V> extends ValuesDbTable<T, V> {
             db.getCache(table).remove(dbKey);
         }
     }
-    
+
 }

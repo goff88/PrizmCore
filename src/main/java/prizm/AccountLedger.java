@@ -126,11 +126,13 @@ public class AccountLedger {
         public void trim(int height) {
             if (trimKeep <= 0)
                 return;
-            try (Connection con = db.getConnection();
-                 PreparedStatement pstmt = con.prepareStatement("DELETE FROM account_ledger WHERE height <= ?")) {
-                int trimHeight = Math.max(blockchain.getHeight() - trimKeep, 0);
-                pstmt.setInt(1, trimHeight);
-                pstmt.executeUpdate();
+            try (Connection con = db.getConnection(); PreparedStatement pstmt = con.prepareStatement("DELETE FROM account_ledger WHERE height <= ? LIMIT " + Constants.BATCH_COMMIT_SIZE)) {
+                pstmt.setInt(1, Math.max(blockchain.getHeight() - trimKeep, 0));
+                int trimmed;
+                do {
+                    trimmed = pstmt.executeUpdate();
+                    Db.db.commitTransaction();
+                } while (trimmed >= Constants.BATCH_COMMIT_SIZE);
             } catch (SQLException e) {
                 throw new RuntimeException(e.toString(), e);
             }
@@ -317,12 +319,12 @@ public class AccountLedger {
         //
         // Build the SELECT statement to search the entries
         StringBuilder sb = new StringBuilder(128);
-        sb.append("SELECT * FROM account_ledger ");
+        sb.append("SELECT * FROM account_ledger USE INDEX (ACCOUNT_LEDGER_ID_IDX) ") ;
         if (accountId != 0 || event != null || holding != null) {
             sb.append("WHERE ");
         }
         if (accountId != 0) {
-            sb.append("account_id = ? ");
+            sb.append("account_id = ? AND db_id>-1");
         }
         if (event != null) {
             if (accountId != 0) {
@@ -340,7 +342,7 @@ public class AccountLedger {
             if (holdingId != 0)
                 sb.append("AND holding_id = ? ");
         }
-        sb.append("ORDER BY db_id DESC ");
+        sb.append("ORDER BY account_id,db_id DESC ");
         sb.append(DbUtils.limitsClause(firstIndex, lastIndex));
         //
         // Get the ledger entries

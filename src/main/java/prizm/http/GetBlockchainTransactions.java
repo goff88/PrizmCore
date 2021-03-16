@@ -16,10 +16,7 @@
 
 package prizm.http;
 
-import prizm.Genesis;
-import prizm.Prizm;
-import prizm.PrizmException;
-import prizm.Transaction;
+import prizm.*;
 import prizm.db.DbIterator;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
@@ -71,13 +68,22 @@ public final class GetBlockchainTransactions extends APIServlet.APIRequestHandle
         int firstIndex = ParameterParser.getFirstIndex(req);
         int lastIndex = ParameterParser.getLastIndex(req);
 
+        boolean ignoreRequest = false;
         JSONArray transactions = new JSONArray();
-        try (DbIterator<? extends Transaction> iterator = Prizm.getBlockchain().getTransactions(accountId, numberOfConfirmations,
-                type, subtype, timestamp, withMessage, phasedOnly, nonPhasedOnly, firstIndex, lastIndex,
-                includeExpiredPrunable, executedOnly)) {
-            while (iterator.hasNext()) {
-                Transaction transaction = iterator.next();
-                transactions.add(JSONData.transaction(transaction, includePhasingResult));
+        if (Constants.SERVE_ONLY_LATEST_TRANSACTIONS) {
+            if (firstIndex > 901)
+                ignoreRequest = true;
+            if (lastIndex > 1000)
+                lastIndex = 1000;
+        }
+        if (!ignoreRequest) {
+            try (DbIterator<? extends Transaction> iterator = Prizm.getBlockchain().getTransactions(accountId, numberOfConfirmations,
+                    type, subtype, timestamp, withMessage, phasedOnly, nonPhasedOnly, firstIndex, lastIndex,
+                    includeExpiredPrunable, executedOnly)) {
+                while (iterator.hasNext()) {
+                    Transaction transaction = iterator.next();
+                    transactions.add(JSONData.transaction(transaction, includePhasingResult));
+                }
             }
         }
 

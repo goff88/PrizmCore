@@ -22,12 +22,7 @@ import prizm.db.FilteringIterator;
 import prizm.db.FullTextTrigger;
 import prizm.peer.Peer;
 import prizm.peer.Peers;
-import prizm.util.Convert;
-import prizm.util.JSON;
-import prizm.util.Listener;
-import prizm.util.Listeners;
-import prizm.util.Logger;
-import prizm.util.ThreadPool;
+import prizm.util.*;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.JSONStreamAware;
@@ -140,6 +135,33 @@ final class BlockchainProcessorImpl implements BlockchainProcessor {
                 //
                 // Download blocks until we are up-to-date
                 //
+                if (Prizm.shouldPerformRescan()) {
+                    Prizm.setPerformRescan(false);
+                    Logger.logWarningMessage(" === Starting blockchain update - please wait");
+                    Logger.logWarningMessage(" === Blockchain update is expected to be done in 30 - 60 minutes");
+                    final long startTimeRescan = System.currentTimeMillis();
+                    try {
+                        setGetMoreBlocks(false);
+                        scan(0, false);
+                        long timeSpent = (System.currentTimeMillis() - startTimeRescan) / 1000;
+                        Logger.logWarningMessage(" === SUCCESS === Blockchain update finished in " + (timeSpent/60) + " minutes " + (timeSpent%60) + " seconds");
+                    } finally {
+                        setGetMoreBlocks(true);
+                    }
+                }
+                if (blockchain.getHeight() > Constants.BEGIN_ZEROBLOCK_FIX) {
+                    if (!Prizm.para().isZeroblockFixed()) {
+                        try {
+                            setGetMoreBlocks(false);
+                            Logger.logWarningMessage(" === Starting blockchain update - please wait");
+                            popOffTo(Constants.BEGIN_ZEROBLOCK_FIX);
+                            Prizm.para().zeroblockFixed();
+                            Logger.logWarningMessage(" === Blockchain update finished");
+                        } finally {
+                            setGetMoreBlocks(true);
+                        }
+                    }
+                }
                 while (true) {
                     if (!getMoreBlocks) {
                         return;
@@ -150,8 +172,9 @@ final class BlockchainProcessorImpl implements BlockchainProcessor {
                             isDownloading = false;
                             if (blockchain.getHeight() > Constants.maxBlockchainHeight)
                                 Logger.logErrorMessage("Blockchain height "+blockchain.getHeight()+" is higher then the prizm.maxBlockchainHeight "+Constants.maxBlockchainHeight+" in configuration file. Blockchain download  stopped.");
-                            else
+                            else {
                                 Logger.logWarningMessage("Reached max blockchain height: " + Constants.maxBlockchainHeight);
+                            }
                             return;
                         }
                     }
@@ -550,13 +573,46 @@ final class BlockchainProcessorImpl implements BlockchainProcessor {
                 //
                 int myForkSize = blockchain.getHeight() - startHeight;
                 if (!forkBlocks.isEmpty() && myForkSize < 720) {
-                    Logger.logDebugMessage("Will process a fork of " + forkBlocks.size() + " blocks, mine is " + myForkSize);
-                    processFork(feederPeer, forkBlocks, commonBlock);
+                    if (prevalidateFork(forkBlocks)) {
+                        if (Prizm.isCompatiblePeerVersion(feederPeer.getVersion())) {
+                            Logger.logDebugMessage("Will process a fork of " + forkBlocks.size() + " blocks, mine is " + myForkSize);
+                            processFork(feederPeer, forkBlocks, commonBlock);
+                        } else {
+                            Logger.logDebugMessage("Refusing fork from incompatible peer " + feederPeer.getHost() + " (version " + feederPeer.getVersion() + "), first fork block is " + forkBlocks.get(0).getStringId() + " at height " + (BlockchainImpl.getInstance().getBlock(forkBlocks.get(0).getPreviousBlockId()).getHeight()+1));
+                            feederPeer.blacklist("Peer is incompatible");
+                        }
+                    } else {
+                        feederPeer.blacklist("Peer is sending bad blocks");
+                    }
                 }
             } finally {
                 blockchain.writeUnlock();
             }
 
+        }
+
+        private boolean prevalidateFork(List<BlockImpl> forkBlocks) {
+            if (blockchain.getHeight() >= Constants.ENABLE_BLOCK_VERSION_PREVALIDATION) {
+                Set<String> blacklistedBlockIds = Constants.getBlacklistedBlocks();
+                long previousBlockId = forkBlocks.get(0).getPreviousBlockId();
+                BlockImpl previousBlock = BlockchainImpl.getInstance().getBlock(previousBlockId);
+                if (previousBlock != null) {
+                    int lastHeight = previousBlock.getHeight();
+                    for (int i = 0; i < forkBlocks.size(); i++) {
+                        Block forkBlock = forkBlocks.get(i);
+                        int forkBlockHeight = lastHeight + (i+1);
+                        if (forkBlock.getVersion() != getBlockVersion(forkBlockHeight-1)) {
+                            Logger.logWarningMessage("Refusing peer blocks with invalid block versioning (first block is " + forkBlocks.get(0).getId() + " at " + (lastHeight+1) + ", bad versioned block is " + forkBlock.getId() + " at " + (forkBlockHeight) + ")");
+                            return false;
+                        }
+                        if (blacklistedBlockIds.contains(forkBlock.getStringId())) {
+                            Logger.logWarningMessage("Refusing peer blocks containing bad block (first fork block is " + forkBlocks.get(0).getId() + " at " + (lastHeight+1) + ", bad block is " + forkBlock.getId() + " at " + (forkBlockHeight) + ")");
+                            return false;
+                        }
+                    }
+                }
+            }
+            return true;
         }
 
         private void processFork(final Peer peer, final List<BlockImpl> forkBlocks, final Block commonBlock) {
@@ -685,7 +741,7 @@ final class BlockchainProcessorImpl implements BlockchainProcessor {
             request.put("blockIds", idList);
             request.put("blockId", Long.toUnsignedString(blockIds.get(start)));
             long startTime = System.currentTimeMillis();
-            JSONObject response = peer.send(JSON.prepareRequest(request), 10 * 1024 * 1024);
+            JSONObject response = peer.send(JSON.prepareRequest(request), Peers.MAX_MESSAGE_SIZE);
             responseTime = System.currentTimeMillis() - startTime;
             if (response == null) {
                 return null;
@@ -907,7 +963,7 @@ final class BlockchainProcessorImpl implements BlockchainProcessor {
                     }
                     request.put("requestType", "getTransactions");
                     request.put("transactionIds", requestList);
-                    JSONObject response = peer.send(JSON.prepareRequest(request), 10 * 1024 * 1024);
+                    JSONObject response = peer.send(JSON.prepareRequest(request), Peers.MAX_MESSAGE_SIZE);
                     if (response == null) {
                         return;
                     }
@@ -1000,7 +1056,7 @@ final class BlockchainProcessorImpl implements BlockchainProcessor {
     };
 
     private BlockchainProcessorImpl() {
-        final int trimFrequency = Prizm.getIntProperty("prizm.trimFrequency");
+        final int trimFrequency = Constants.TRIM_FREQUENCY;
         blockListeners.addListener(block -> {
             if (block.getHeight() % 5000 == 0) {
                 Logger.logMessage("processed block " + block.getHeight());
@@ -1018,7 +1074,7 @@ final class BlockchainProcessorImpl implements BlockchainProcessor {
                     isTrimming = false;
                 });
             }
-            if (block.getHeight() % 5000 == 0) {                
+            if (block.getHeight() % 5000 == 0) {
                 Logger.logMessage("received block " + block.getHeight());
                 if (!isDownloading || block.getHeight() % 50000 == 0) {
                     networkService.submit(Db.db::analyzeTables);
@@ -1096,9 +1152,12 @@ final class BlockchainProcessorImpl implements BlockchainProcessor {
     }
 
     private void doTrimDerivedTables() {
-        lastTrimHeight = Math.max(blockchain.getHeight() - Constants.MAX_ROLLBACK, 0);
+        lastTrimHeight = Math.max((blockchain.getHeight()/Constants.TRIM_FREQUENCY)*Constants.TRIM_FREQUENCY - Constants.MAX_ROLLBACK, 0); // Do not depend on blockchain height
         if (lastTrimHeight > 0) {
+            Logger.logInfoMessage("Trimming derived tables at "+lastTrimHeight);
+            long startTime = System.currentTimeMillis();
             for (DerivedDbTable table : derivedTables) {
+                long startTimeInner = System.currentTimeMillis();
                 blockchain.readLock();
                 try {
                     table.trim(lastTrimHeight);
@@ -1106,7 +1165,14 @@ final class BlockchainProcessorImpl implements BlockchainProcessor {
                 } finally {
                     blockchain.readUnlock();
                 }
+                if (System.currentTimeMillis() - startTimeInner != 0 && Constants.MEASURE_TRIMMING_TIME &&
+                        !(table.toString().equalsIgnoreCase("account") || table.toString().equalsIgnoreCase("account_info") || table.toString().equalsIgnoreCase("public_key") || table.toString().equalsIgnoreCase("alias"))) {
+                    double timeSpent = (double)(System.currentTimeMillis()-startTimeInner)/1000d;
+                    Logger.logDebugMessage("Table " + table.toString().toUpperCase() + " trimmed for " + timeSpent + " seconds");
+                }
             }
+            double timeSpent = (double)(System.currentTimeMillis()-startTime)/1000d;
+            Logger.logInfoMessage("Trimmed derived tables for " + timeSpent + " seconds");
         }
     }
 
@@ -1173,6 +1239,7 @@ final class BlockchainProcessorImpl implements BlockchainProcessor {
                     TransactionProcessorImpl.getInstance().processLater(lastBlock.getTransactions());
                     Logger.logDebugMessage("Last block " + lastBlock.getStringId() + " was replaced by " + block.getStringId());
                 } catch (BlockNotAcceptedException e) {
+                    Prizm.para().rollbackToBlock(Prizm.getBlockchain().getHeight());
                     Logger.logDebugMessage("Replacement block failed to be accepted, pushing back our last block");
                     pushBlock(lastBlock);
                     TransactionProcessorImpl.getInstance().processLater(block.getTransactions());
@@ -1697,6 +1764,20 @@ final class BlockchainProcessorImpl implements BlockchainProcessor {
     }
 
     private int getBlockVersion(int previousBlockHeight) {
+        if (previousBlockHeight >= Constants.HOLD_FIX_CHECKPOINT_BLOCK_HEIGHT)
+            return Constants.HOLD_FIX_CHECKPOINT_BLOCK_VERSION;
+        if (previousBlockHeight >= Constants.HOLD_CHECKPOINT_BLOCK_HEIGHT)
+            return Constants.HOLD_CHECKPOINT_BLOCK_VERSION;
+        if (previousBlockHeight >= Constants.CHECKPOINT_ZEROBLOCK_HEIGHT)
+            return Constants.ZEROBLOCK_CHECKPOINT_BLOCK_VERSION;
+        if (previousBlockHeight >= Constants.CHECKPOINT_850000_HEIGHT)
+            return Constants.CHECKPOINT_850000_BLOCK_VERSION;
+        if (previousBlockHeight >= Constants.BASE_TARGET_FLUCTUATIONS_END-1)
+            return Constants.STABLE_BASE_TARGET_BLOCK_VERSION;
+        if (previousBlockHeight >= Constants.INITIAL_BASE_TARGET_TRANSITION_700-11)
+            return Constants.DYNAMIC_BASE_TARGET_BLOCK_VERSION;
+        if (previousBlockHeight >= Constants.INITIAL_BASE_TARGET_TRANSITION_666_FROM-2)
+            return Constants.INITIAL_BASE_TARGET_UPDATE_BLOCK_VERSION;
         return Constants.CURRENT_BLOCK_VERSION;
     }
 
@@ -1809,7 +1890,13 @@ final class BlockchainProcessorImpl implements BlockchainProcessor {
                 // Never process Genesis transactions scheduled from previous blocks
                 TransactionProcessorImpl.getInstance().removeUnconfirmedTransaction(transaction);
                 continue;
-            }            
+            }
+            if (transaction.getSenderId() == transaction.getRecipientId()) {
+                // Never process transactions to self
+                TransactionProcessorImpl.getInstance().removeUnconfirmedTransaction(transaction);
+                Logger.logWarningMessage("Blocked and deleted unconfirmed transaction to self! Account: " + Long.toUnsignedString(transaction.getSenderId()) + ", transaction: "+transaction.getId());
+                continue;
+            }
             blockTransactions.add(transaction);
             digest.update(transaction.bytes());
             totalAmountNQT += transaction.getAmountNQT();
@@ -2065,17 +2152,14 @@ final class BlockchainProcessorImpl implements BlockchainProcessor {
         }
         ArrayList<TransactionImpl> transactions = new ArrayList<>();
         for (ParaBlock.Payout payout : payouts) {
-            JSONObject infoJSprism = new JSONObject();
-            infoJSprism.put(Constants.IN_BLOCK_ID, payout.getBlockID());
-            infoJSprism.put(Constants.IN_BLOCK_HEIGHT, payout.getHeight());
-            if (payout.getParaTax() > 0l) {
-                infoJSprism.put(Constants.PARA_TAX, payout.getParaTax());
-            }
+            JSONObject prizmJSONInfo = new JSONObject();
+            prizmJSONInfo.put(Constants.IN_BLOCK_ID, payout.getBlockID());
+            prizmJSONInfo.put(Constants.IN_BLOCK_HEIGHT, payout.getHeight());
             if (payout.getTxID() != null) {
-                infoJSprism.put(Constants.IN_TRANSACT_ID, payout.getTxID());
+                prizmJSONInfo.put(Constants.IN_TRANSACT_ID, payout.getTxID());
             }
-            infoJSprism.put(Constants.RANDOM, Math.random());
-            Appendix.Message infogen = new Appendix.Message(infoJSprism.toString(), true);
+            prizmJSONInfo.put(Constants.RANDOM, Math.random());
+            Appendix.Message infogen = new Appendix.Message(prizmJSONInfo.toString(), true);
             try {
                 if (payout.getAmount() > 0l) {
                     final TransactionImpl transactionX = new TransactionImpl.BuilderImpl((byte) 1, Genesis.CREATOR_PUBLIC_KEY,

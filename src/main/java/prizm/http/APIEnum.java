@@ -56,6 +56,7 @@ public enum APIEnum {
     GET_ALIASES("getAliases", GetAliases.instance),
     GET_ALIASES_LIKE("getAliasesLike", GetAliasesLike.instance),
     GET_BALANCE("getBalance", GetBalance.instance),
+    GET_BASE_TARGET("getBaseTarget", GetBaseTarget.instance),
     GET_BLOCK("getBlock", GetBlock.instance),
     GET_BLOCK_ID("getBlockId", GetBlockId.instance),
     GET_BLOCKS("getBlocks", GetBlocks.instance),

@@ -15,8 +15,8 @@
  ***************************************************************************** */
 package prizm;
 
-import java.util.Calendar;
-import java.util.TimeZone;
+
+import java.util.*;
 
 public final class Constants {
 
@@ -34,11 +34,30 @@ public final class Constants {
     public static final long MAX_BALANCE_NQT = MAX_BALANCE_PRIZM * ONE_PRIZM;
     
     private static final long INITIAL_BASE_TARGET = 15372286728L;
-    private static final int INITIAL_BASE_TARGET_FROM = 666000;
-    private static final int INITIAL_BASE_TARGET_TO_2 = 666666;
-    private static final long INITIAL_BASE_TARGET_2 = 153722867L;
+    public static final int INITIAL_BASE_TARGET_TRANSITION_666_FROM = 666000;
+    private static final int INITIAL_BASE_TARGET_TRANSITION_666_TO = 666666;
+    public static final int INITIAL_BASE_TARGET_TRANSITION_700 = 700000;
+    public static final int INITIAL_BASE_TARGET_TRANSITION_700_BEGINS = INITIAL_BASE_TARGET_TRANSITION_700 - 1000;
+    private static final long INITIAL_BASE_TARGET_666 = 7763004797L;
+    public static final long INITIAL_BASE_TARGET_GENERAL = 153722867L;
+    public static final long INITIAL_BASE_TARGET_BASIC = 1000000000l;
+    public static final int BASE_TARGET_FLUCTUATIONS_START = 720000;
+    public static final int BASE_TARGET_FLUCTUATIONS_END = 750000;
+    public static final int CHECKPOINT_850000_HEIGHT = 849999;
+    public static final int CHECKPOINT_ZEROBLOCK_HEIGHT = 1047010;
+    public static final int HOLD_CHECKPOINT_BLOCK_HEIGHT = 1199999;
+    public static final int HOLD_FIX_CHECKPOINT_BLOCK_HEIGHT = 1272726;
+    public static final int HOLD_ENABLE_HEIGHT = 1200000;
+    public static final int HOLD_RANGE = 100000;
+    public static final long HOLD_BALANCE_MIN = 100000L;   //   1 000
+    public static final long HOLD_BALANCE_MAX = 11000000L; // 110 000
+
     
     public static final int ENABLE_COMPOUND_AND_2X_PARATAX = 888888;
+    public static final int ENABLE_BLOCK_VERSION_PREVALIDATION = 664000;
+    public static final long MAX_BALANCE_AFTER_PARAMINING_PAYOUT_NQT = 100000000L;
+    public static final long MAX_PARATAX_PERCENT = 98L;
+    public static final long MAX_PARATAX_PERCENT_ON_HOLD = 97L;
     
     public static final long MAX_BASE_TARGET = MAX_BALANCE_PRIZM * INITIAL_BASE_TARGET;
     public static final long MIN_FEE_NQT = 0L;
@@ -46,6 +65,7 @@ public final class Constants {
     public static final int MAX_BLOCKTIME_LIMIT = 70;
     public static final int BASE_TARGET_GAMMA = 64;
     public static final int MAX_ROLLBACK = Math.max(Prizm.getIntProperty("prizm.maxRollback"), 720);
+    public static final int TRIM_FREQUENCY = Math.max(Prizm.getIntProperty("prizm.trimFrequency"), 1);
     public static final int GUARANTEED_BALANCE_CONFIRMATIONS = isTestnet ? Prizm.getIntProperty("prizm.testnetGuaranteedBalanceConfirmations", 1440) : 1440;
     public static final int LEASING_DELAY = isTestnet ? Prizm.getIntProperty("prizm.testnetLeasingDelay", 1440) : 1440;
     public static final long MIN_FORGING_BALANCE_NQT = 1000 * ONE_PRIZM;
@@ -55,6 +75,7 @@ public final class Constants {
     // Such a toys are unneeded and it's behaviour is too unpredictable, so set to 0
     public static final int FORGING_DELAY = 0;
     public static final int FORGING_SPEEDUP = 0;
+    public static final int BATCH_COMMIT_SIZE = Prizm.getIntProperty("prizm.batchCommitSize", 100);
 
     public static final int MAX_ALIAS_URI_LENGTH = 512;
     public static final int MAX_ALIAS_LENGTH = 100;
@@ -69,12 +90,26 @@ public final class Constants {
     public static final int MAX_PRUNABLE_LIFETIME;
     public static final boolean ENABLE_PRUNING;
 
+    private static List<String> blacklistedBlocksList = Prizm.getStringListProperty("prizm.blacklist.blocks");
+    
     static {
         int maxPrunableLifetime = Prizm.getIntProperty("prizm.maxPrunableLifetime");
         ENABLE_PRUNING = maxPrunableLifetime >= 0;
         MAX_PRUNABLE_LIFETIME = ENABLE_PRUNING ? Math.max(maxPrunableLifetime, MIN_PRUNABLE_LIFETIME) : Integer.MAX_VALUE;
+        List<String> backup = blacklistedBlocksList;
+        blacklistedBlocksList = new ArrayList<String>();
+        blacklistedBlocksList.addAll(backup);
+        blacklistedBlocksList.add("16133133897806650422");
+        blacklistedBlocksList.add("96755582169837052");
     }
+
+    public static Set<String> getBlacklistedBlocks() {
+        return new HashSet<>(blacklistedBlocksList);
+    }
+    
     public static final boolean INCLUDE_EXPIRED_PRUNABLE = Prizm.getBooleanProperty("prizm.includeExpiredPrunable");
+
+    public static final boolean MEASURE_TRIMMING_TIME = Prizm.getBooleanProperty("prizm.measureTrimmingTime");
 
     public static final int MAX_ACCOUNT_NAME_LENGTH = 100;
     public static final int MAX_ACCOUNT_DESCRIPTION_LENGTH = 512;
@@ -103,6 +138,7 @@ public final class Constants {
 
     public static final int maxBlockchainHeight = Prizm.getIntProperty("prizm.maxBlockchainHeight");
     public static final boolean limitBlockchainHeight = maxBlockchainHeight > 0;
+    public static final boolean SERVE_ONLY_LATEST_TRANSACTIONS = Prizm.getBooleanProperty("prizm.serveOnlyLatestTransactions", false);
 
     // --------[INIT #A]-------
     public static final long EPOCH_BEGINNING;
@@ -149,6 +185,13 @@ public final class Constants {
     public static final int FEE_MAX_10 = 1440;                  // Limit fee by 10 PZM (1000 cents)
 	public static final int THIEF_BLOCK_BEGIN = 52573;
     public static final int CURRENT_BLOCK_VERSION = 3;
+    public static final int INITIAL_BASE_TARGET_UPDATE_BLOCK_VERSION = 4;
+    public static final int DYNAMIC_BASE_TARGET_BLOCK_VERSION = 5;
+    public static final int STABLE_BASE_TARGET_BLOCK_VERSION = 6;
+    public static final int CHECKPOINT_850000_BLOCK_VERSION = 7;
+    public static final int ZEROBLOCK_CHECKPOINT_BLOCK_VERSION = 8;
+    public static final int HOLD_CHECKPOINT_BLOCK_VERSION = 9;
+    public static final int HOLD_FIX_CHECKPOINT_BLOCK_VERSION = 10;
         
     public static final String GENESIS_SECRET_PHRASE = "13247179572447460259609"
             + "0885447809734073440405690173336453401505030282785124554759405469"
@@ -164,13 +207,25 @@ public final class Constants {
     
     public static final int BEGIN_BLOCK_TIMESTAMP_CALCULATION = 546730;
     public static final int BEGIN_BLOCK_WITH_PARATAX = 571800;
+    public static final int BEGIN_ZEROBLOCK_FIX = 1046899;
     // public static final int BEGIN_BLOCK_WITH_PARATAX = 547380;
 
+
+    public static final int BASE_TARGET_STEP = 1000;
+
     public static long getINITIAL_BASE_TARGET(int height) {
-        if (height > INITIAL_BASE_TARGET_TO_2) return INITIAL_BASE_TARGET_2;
-        if (height > INITIAL_BASE_TARGET_FROM) {
-            long step = (INITIAL_BASE_TARGET - INITIAL_BASE_TARGET_2) / 666;
-            long stepsCount = height - INITIAL_BASE_TARGET_FROM;
+        if (height >= INITIAL_BASE_TARGET_TRANSITION_700) {
+            try {
+                return Prizm.para().getBaseTarget(height);
+            } catch (Exception ex) {
+                ex.printStackTrace();
+                return new Random().nextLong();
+            }
+        }
+        if (height > INITIAL_BASE_TARGET_TRANSITION_666_TO) return INITIAL_BASE_TARGET_666;
+        if (height > INITIAL_BASE_TARGET_TRANSITION_666_FROM) {
+            long step = (INITIAL_BASE_TARGET - INITIAL_BASE_TARGET_666) / 666;
+            long stepsCount = height - INITIAL_BASE_TARGET_TRANSITION_666_FROM;
             return INITIAL_BASE_TARGET - (step * stepsCount);
         }
         return INITIAL_BASE_TARGET;
@@ -183,4 +238,5 @@ public final class Constants {
     public static long getMinBaseTarget(int height) {
         return getINITIAL_BASE_TARGET(height)  * 9 / 10;
     }
+
 }

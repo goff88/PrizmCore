@@ -97,7 +97,7 @@ public final class Peers {
     static final boolean getMorePeers;
     static final int MAX_REQUEST_SIZE = 1024 * 1024;
     static final int MAX_RESPONSE_SIZE = 1024 * 1024;
-    static final int MAX_MESSAGE_SIZE = 10 * 1024 * 1024;
+    public static final int MAX_MESSAGE_SIZE = 20 * 1024 * 1024;
     public static final int MIN_COMPRESS_SIZE = 256;
     static final boolean useWebSockets;
     static final int webSocketIdleTimeout;
@@ -629,7 +629,7 @@ public final class Peers {
                     if (peer == null) {
                         return;
                     }
-                    JSONObject response = peer.send(getPeersRequest, 10 * 1024 * 1024);
+                    JSONObject response = peer.send(getPeersRequest, Peers.MAX_MESSAGE_SIZE);
                     if (response == null) {
                         return;
                     }
@@ -1231,7 +1231,7 @@ public final class Peers {
         Block lastBlock = Prizm.getBlockchain().getLastBlock();
         Peer.BlockchainState state = Constants.isLightClient ? Peer.BlockchainState.LIGHT_CLIENT :
                 (Prizm.getBlockchainProcessor().isDownloading() || Prizm.getBlockchain().getLastBlockTimestamp() < Prizm.getEpochTime() - 600) ? Peer.BlockchainState.DOWNLOADING :
-                        (lastBlock.getBaseTarget() / Constants.getINITIAL_BASE_TARGET(lastBlock.getHeight()) > 10 && !Constants.isTestnet) ? Peer.BlockchainState.FORK :
+                        (lastBlock.getBaseTarget() / Constants.getINITIAL_BASE_TARGET(lastBlock.getHeight()) > 25 && !Constants.isTestnet) ? Peer.BlockchainState.FORK :
                         Peer.BlockchainState.UP_TO_DATE;
         if (state != currentBlockchainState) {
             JSONObject json = new JSONObject(myPeerInfo);

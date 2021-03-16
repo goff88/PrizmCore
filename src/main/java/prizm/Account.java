@@ -249,9 +249,13 @@ public final class Account {
         public void trim(int height) {
             try (Connection con = Db.db.getConnection();
                     PreparedStatement pstmtDelete = con.prepareStatement("DELETE FROM account_guaranteed_balance "
-                            + "WHERE height < ? AND height >= 0")) {
+                            + "WHERE height < ? AND height >= 0 LIMIT " + Constants.BATCH_COMMIT_SIZE)) {
                 pstmtDelete.setInt(1, height - Constants.GUARANTEED_BALANCE_CONFIRMATIONS);
-                pstmtDelete.executeUpdate();
+                int count;
+                do {
+                    count = pstmtDelete.executeUpdate();
+                    Db.db.commitTransaction();
+                } while (count >= Constants.BATCH_COMMIT_SIZE);
             } catch (SQLException e) {
                 throw new RuntimeException(e.toString(), e);
             }
@@ -410,15 +414,14 @@ public final class Account {
     private void save(Connection con) throws SQLException {
         try (PreparedStatement pstmt = con.prepareStatement("MERGE INTO account (id, "
                 + "balance, unconfirmed_balance, forged_balance, "
-                + "active_lessee_id, has_control_phasing, height, latest) "
-                + "KEY (id, height) VALUES (?, ?, ?, ?, ?, ?, ?, TRUE)")) {
+                + "active_lessee_id, height, latest) "
+                + "KEY (id, height) VALUES (?, ?, ?, ?, ?, ?, TRUE)")) {
             int i = 0;
             pstmt.setLong(++i, this.id);
             pstmt.setLong(++i, this.balanceNQT);
             pstmt.setLong(++i, this.unconfirmedBalanceNQT);
             pstmt.setLong(++i, this.forgedBalanceNQT);
             DbUtils.setLongZeroToNull(pstmt, ++i, 0L);
-            pstmt.setBoolean(++i, false);
             pstmt.setInt(++i, Prizm.getBlockchain().getHeight());
             pstmt.executeUpdate();
         }

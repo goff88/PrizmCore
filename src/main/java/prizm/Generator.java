@@ -237,14 +237,25 @@ public final class Generator implements Comparable<Generator> {
         if (elapsedTime <= 0) {
             return false;
         }
+        boolean isFluctuating = previousBlock.getHeight() > Constants.BASE_TARGET_FLUCTUATIONS_START && previousBlock.getHeight() < Constants.BASE_TARGET_FLUCTUATIONS_END - 1;
         BigInteger effectiveBaseTarget = BigInteger.valueOf(previousBlock.getBaseTarget()).multiply(effectiveBalance);
-        BigInteger prevTarget = effectiveBaseTarget.multiply(BigInteger.valueOf(elapsedTime - 1));
+        BigInteger prevTarget = effectiveBaseTarget.multiply(BigInteger.valueOf(elapsedTime - (isFluctuating? 2:1)));
         BigInteger target = prevTarget.add(effectiveBaseTarget);
-        return hit.compareTo(target) < 0
-                && (previousBlock.getHeight() < Constants.TRANSPARENT_FORGING_BLOCK_8
+        if (isFluctuating) {
+            BigInteger prevTarget2 = effectiveBaseTarget.multiply(BigInteger.valueOf(elapsedTime - 1));
+            if (hit.compareTo(prevTarget2) < 0) {
+                BigInteger hitPositionRaw = hit.subtract(prevTarget2);
+                double hitPositionPercent = Math.round(((double) hitPositionRaw.longValue() / (double) effectiveBaseTarget.longValue()) * 100000d) / 1000d;
+                Logger.logDebugMessage("Repairing fluctuating block at " + (previousBlock.getHeight()+1) + " , fluctuation " + hitPositionPercent + " %");
+            }
+            target = target.add(effectiveBaseTarget);
+        }
+        boolean smallerThanTarget = hit.compareTo(target) < 0;
+        boolean largerThanPrevTarget = (previousBlock.getHeight() < Constants.TRANSPARENT_FORGING_BLOCK_8
                 || hit.compareTo(prevTarget) >= 0
                 || (Constants.isTestnet ? elapsedTime > 300 : elapsedTime > 3600)
                 || Constants.isOffline);
+        return smallerThanTarget && largerThanPrevTarget;
     }
 
     static boolean allowsFakeForging(byte[] publicKey) {
