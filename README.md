@@ -18,8 +18,8 @@
 
 ## [Prizm TOOL visualizer](https://tool.prizm.space/)
 
-## Official blockchain snapshot [.torrent](http://tech.prizm.space/files/prizm_db_1250.torrent) 
-(MD5: 534542dc2dc35f1fbbb8ec1aacb7b992)
+## Official blockchain snapshot [.torrent](http://tech.prizm.space/files/prizm_db_1442.torrent) 
+(MD5: a094bf0c178d72812cf8e8648ee0255b)
 
 
 
