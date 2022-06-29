@@ -16,7 +16,7 @@
 
 ## [Prizm ParaMining calculator](https://paracalc.prizm.space/)
 
-## [Prizm TOOL visualizer](https://tool.prizm.space/)
+## [Prizm TOOL visualizer](https://tool-prizm.space/)
 
 ## Official blockchain snapshot [.torrent](http://tech.prizm.space/files/prizm_db_1442.torrent) 
 (MD5: a094bf0c178d72812cf8e8648ee0255b)
