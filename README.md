@@ -19,8 +19,8 @@
 
 ## [Prizm TOOL visualizer](https://tool-prizm.space/)
 
-## Official blockchain snapshot [.torrent](http://tech.prizm.space/files/prizm_db_1442.torrent) 
-(MD5: a094bf0c178d72812cf8e8648ee0255b)
+## Official blockchain snapshot. Height:2112465 [.torrent](https://tech.prizm.vip/files/prizm_db.torrent) and [.zip](https://tech.prizm.vip/files/prizm_db.zip)
+
 
 
 
