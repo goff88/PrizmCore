@@ -9,7 +9,7 @@
 
 ## User friendly [Online Wallet](https://wallet.prizm.space/) ([Mirror](https://wallet.prizm-space.com/))
 
-## User friendly [Online Wallet](https://wallet.prizm.vip/) v 1.0
+## User friendly [Online Wallet](https://wallet.prizm.vip/) v 1.1
 
 ## Client downloads for [Windows](http://tech.prizm.space/files/PRIZM_Wallet_Setup.exe) and [OS/X](http://tech.prizm.space/files/PRIZM_Wallet.dmg)
 
