@@ -3,7 +3,10 @@
 ## PRIZM Whitepaper ([en](https://tech.prizm.vip/files/prizm_wp_en.pdf), [ru](https://tech.prizm.vip/files/prizm_wp_ru.pdf), [zh](https://tech.prizm.vip/files/prizm_wp_zh.pdf), [el](https://tech.prizm.vip/files/prizm_wp_el.pdf), [id](https://tech.prizm.vip/files/prizm_wp_id.pdf), [tr](https://tech.prizm.vip/files/prizm_wp_tr.pdf))
 
 ## PrizmCore wallet download (v.1.10.4.6: [Windows](http://tech.prizm.space/files/prizm-dist-1.10.4.6-win.exe), [OS/X](http://tech.prizm.space/files/prizm-dist-1.10.4.6-mac.dmg), [Linux](http://tech.prizm.space/files/prizm-dist-1.10.4.6-linux.tgz))
+
 ## PrizmCore Mirror (v.1.10.4.6: [Windows](https://tech.prizm.vip/files/prizm-dist-1.10.4.6-win.exe), [OS/X](https://tech.prizm.vip/files/prizm-dist-1.10.4.6-mac.dmg), [Linux](https://tech.prizm.vip/files/prizm-dist-1.10.4.6-linux.tgz))
+
+## PrizmCore_Mod (v.1.2_final: [For all operating systems](https://tech.prizm.vip/files/PrizmCore_Mod_v.1.2_final.zip) )
 
 ## This is [Android Application](http://tech.prizm.space/files/prizm.apk)
 
