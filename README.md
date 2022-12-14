@@ -6,7 +6,7 @@
 
 ## PrizmCore Mirror (v.1.10.4.6: [Windows](https://tech.prizm.vip/files/prizm-dist-1.10.4.6-win.exe), [OS/X](https://tech.prizm.vip/files/prizm-dist-1.10.4.6-mac.dmg), [Linux](https://tech.prizm.vip/files/prizm-dist-1.10.4.6-linux.tgz))
 
-## PrizmCore_Mod (v.1.2_final: [For all operating systems](https://tech.prizm.vip/files/PrizmCore_Mod_v.1.2_final.zip) )
+## PrizmCore_Mod (v.1.2_final: [All operating systems](https://tech.prizm.vip/files/PrizmCore_Mod_v.1.2_final.zip))
 
 ## This is [Android Application](http://tech.prizm.space/files/prizm.apk)
 
@@ -23,6 +23,8 @@
 ## [Prizm ParaMining calculator](https://paracalc.prizm.space/)
 
 ## [Prizm TOOL visualizer](https://tool-prizm.space/)
+
+## Java 8 for PrizmCore (u221 [All operating systems](https://tech.prizm.vip/files/Java_8u221_all_os.zip))
 
 ## Official blockchain snapshot. Height:2112465 [.torrent](https://tech.prizm.vip/files/prizm_db.torrent) and [.zip](https://tech.prizm.vip/files/prizm_db.zip)
 
