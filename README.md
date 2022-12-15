@@ -18,7 +18,7 @@
 
 ## Easy API gateway [PrizmAPIServlet 1.10.4](http://tech.prizm.space/files/prizm-api-1.10.4.tgz)
 
-## Blockchain explorer [BlockChain.PRIZM.SPACE](http://blockchain.prizm.space/)
+## Blockchain explorer [Web Prizm Core](https://core.prizm.vip/)
 
 ## [Prizm ParaMining calculator](https://paracalc.prizm.space/)
 
