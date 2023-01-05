@@ -26,7 +26,7 @@
 
 ## Java 8 for PrizmCore (u221 [All operating systems](https://tech.prizm.vip/files/Java_8u221_all_os.zip))
 
-## Official blockchain snapshot. Height:2322716 | 18.12.22 [.torrent](https://tech.prizm.vip/files/prizm_db.torrent) and [.zip](https://tech.prizm.vip/files/prizm_db.zip)
+## Official blockchain snapshot. Height:2347552 | 5.01.23 [.torrent](https://tech.prizm.vip/files/prizm_db.torrent) and [.zip](https://tech.prizm.vip/files/prizm_db.zip)
 
 
 
