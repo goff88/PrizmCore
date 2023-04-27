@@ -18,7 +18,7 @@
 
 ## Easy API gateway [PrizmAPIServlet 1.10.4](http://tech.prizm.space/files/prizm-api-1.10.4.tgz)
 
-## Blockchain explorer [Web Prizm Core](https://core.prizm.vip/)
+## [Blockchain explorer](https://blockchain.prizm.vip/) AND [Web Prizm Core](https://core.prizm.vip/)
 
 ## [Prizm ParaMining calculator](https://paracalc.prizm.space/)
 
@@ -27,6 +27,8 @@
 ## Java 8 for PrizmCore (u221 [All operating systems](https://tech.prizm.vip/files/Java_8u221_all_os.zip))
 
 ## Official blockchain snapshot. Height:2347552 | 5.01.23 [.torrent](https://tech.prizm.vip/files/prizm_db.torrent) and [.zip](https://tech.prizm.vip/files/prizm_db.zip)
+
+## [API doc instructions](https://blockchain.prizm.vip/api-doc/PRIZM_API.html)
 
 
 
