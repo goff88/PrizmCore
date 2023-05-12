@@ -6,7 +6,7 @@
 
 ## PrizmCore Mirror (v.1.10.4.6: [Windows](https://tech.prizm.vip/files/prizm-dist-1.10.4.6-win.exe), [OS/X](https://tech.prizm.vip/files/prizm-dist-1.10.4.6-mac.dmg), [Linux](https://tech.prizm.vip/files/prizm-dist-1.10.4.6-linux.tgz))
 
-## PrizmCore_Mods [v.1.2 All OS](https://tech.prizm.vip/files/PrizmCore_Mod_v.1.2_final.zip), [v.1.31 All OS](https://tech.prizm.vip/files/PrizmCore_Mod_v.1.31.zip)
+## PrizmCore_Mods [v.1.2 All OS](https://tech.prizm.vip/files/PrizmCore_Mod_v.1.2_final.zip), [v.1.32 All OS](https://tech.prizm.vip/files/PrizmCore_Mod_v.1.32.zip)
 
 ## Prizm app [Android lite](https://tech.prizm.vip/files/prizm.apk), [IOS full](https://apps.apple.com/ru/app/prizm-wallet/id1451337725), [IOS lite](https://apps.apple.com/ru/app/prizm-light/id1549745442).
 
