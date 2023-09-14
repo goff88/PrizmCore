@@ -5,7 +5,7 @@ Prizm is a decentralized blockchain project built on top of [NXT opesource proje
 
 Welcome to the Prizm Main Network. This is the main network where the tokens hold value and should be guarded very carefully. If you are testing the network, or developing unstable software on Prizm, we highly recommend using either testnet or regtest mode. 
 
-What is Prizm?
+What is Prizm node?
 -------------
 
 It implements a full node and is capable of storing, validating, and distributing all history of the Prizm network. Prizm Core is considered the reference implementation for the Prizm network.
